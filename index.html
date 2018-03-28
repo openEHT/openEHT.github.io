@@ -1,0 +1,298 @@
+<!-- Copyright 2018 David Cohen-->
+<html>
+    <head>
+	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+	<script src="http://d3js.org/d3.v3.min.js"></script>
+	<style>
+
+	    .axis {
+	      font: 10px sans-serif;
+	    }
+
+	    .axis path,
+	    .axis line {
+	      fill: none;
+	      stroke: #000;
+	      shape-rendering: crispEdges;
+	    }
+
+	</style>
+	<script>
+	 var company_stats = {
+	     "amazon": {"revenue": 135987000000,"num_fte": 40000, "employee_wage": 75},
+	     "facebook": {"revenue": 27639000000,"num_fte": 2000, "employee_wage": 75}
+	 }
+
+	 var margin = {top: 40, right: 20, bottom: 60, left: 100},
+	     width = 600 - margin.left - margin.right,
+	     height = 300 - margin.top - margin.bottom;
+	 	 
+	 function calculate_tax(){
+	     var elem = document.getElementById("d3-chart");
+	     elem.innerHTML = "";
+
+	     var svg = d3.select("#d3-chart").append("svg")
+			 .attr("width", width + margin.left + margin.right)
+			 .attr("height", height + margin.top + margin.bottom)
+			 .append("g")
+			 .attr("transform", 
+			       "translate(" + margin.left + "," + margin.top + ")");	 
+
+	     var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+	     var y = d3.scale.linear().range([height, 0]);
+
+	     var xAxis = d3.svg.axis()
+			   .scale(x)
+			   .orient("bottom");
+
+	     var yAxis = d3.svg.axis()
+			   .scale(y)
+			   .orient("left")
+			   .ticks(10).
+			    tickFormat(
+				function(d){ 
+				    return "$" + d3.format(",.2f")(d);
+				}
+			    );
+	     	     /* .tickFormat(d3.time.format("%Y-%m")); */
+
+
+	     var revenue = document.getElementById("revenue_input").value;
+	     var num_fte = document.getElementById("num_fte_input").value;
+	     var employee_wage = document.getElementById("employee_wage_input").value;
+
+	     var option1 = 0;
+	     if (revenue > 10000000){
+		 if (num_fte < 101){
+		     option1 = .0025*num_fte*40*50*employee_wage;
+		 } else if (num_fte < 501){
+		     option1 = .005*num_fte*40*50*employee_wage;
+		 } else {
+		     option1 = .0075*num_fte*40*50*employee_wage;
+		 }
+	     } else if (revenue >= 500000){
+		 option1 = 395;
+	     }
+
+	     var option2 = 0
+	     if (revenue > 8000000){
+		 if (num_fte < 501){
+		     option2 = 200*num_fte;
+		 } else {
+		     option2 = 450*num_fte;
+		 }
+	     } else if (revenue >= 500000){
+		 option2 = 395;
+	     }
+
+	     var option3 = 0
+	     if (revenue > 8000000){
+		 if (num_fte < 501){
+		     option3 = 140*num_fte + .001*num_fte*40*50*employee_wage;
+		 } else {
+		     option3 = 300*num_fte + .0025*num_fte*40*50*employee_wage;
+		 }
+	     } else if (revenue >= 500000){
+		 option3 = 395;
+	     }
+
+	     data = [
+		 {option: "Option 1", value:option1},
+		 {option: "Option 2", value:option2},
+		 {option: "Option 3", value:option3}
+	     ]
+
+	     data.forEach(function(d) {
+		 /* d.date = parseDate(d.date); */
+		 d.value = +d.value;
+	     });
+	     
+	     x.domain(data.map(function(d) { return d.option; }));
+	     y.domain([0, d3.max(data, function(d) { return d.value; })]);
+
+
+	     svg.append("text")
+		.attr("x", (width / 2))             
+		.attr("y", 0 - (margin.top / 2))
+		.attr("text-anchor", "middle")  
+		.style("font-size", "16px") 
+		.style("text-decoration", "underline")  
+		.text("Additional Taxes Under the Different Proposed Options");
+	     
+	     svg.append("g")
+		.attr("class", "x axis")
+		.attr("transform", "translate(0," + height + ")")
+		.call(xAxis)
+		.selectAll("text")
+		.style("text-anchor", "end")
+		.attr("dx", "-.8em")
+		.attr("dy", "-.55em")
+		.attr("transform", "rotate(-90)" );
+	     
+	     svg.append("g")
+		.attr("class", "y axis")
+		.call(yAxis)
+		.append("text")
+		.attr("transform", "rotate(-90)")
+		.attr("y", 6)
+		.attr("dy", ".71em")
+		.style("text-anchor", "end");
+
+	     svg.selectAll("bar")
+		.data(data)
+		.enter().append("rect")
+		.style("fill", "steelblue")
+		.attr("x", function(d) { return x(d.option); })
+		.attr("width", x.rangeBand())
+		.attr("y", function(d) { return y(d.value); })
+		.attr("height", function(d) { return height - y(d.value); });
+	 }
+
+	 function show_company(company_name){
+	     // set form values
+	     var c = company_stats[company_name];
+	     for (var property in c){
+		 if (c.hasOwnProperty(property)){
+		     var elem = document.getElementById(property+"_input");
+		     elem.value = c[property];
+		 }
+	     }
+
+	     // update estimates
+	     calculate_tax()
+	 }
+
+	</script>
+
+    </head>
+    <body>
+
+	<div class="jumbotron">
+	    <h1>Are the Progressive Revenue Taskforce Recommendations Bad for Business?</h1>
+
+	    <p>
+		The Progressive Revenue Taskforce recommended some new progressive taxes in <a href="https://www.seattle.gov/Documents/Departments/Council/Issues/ProgressiveRevenueTaskforce/Report-of-the-Progressive-Revenue-Taskforce-03-09-2018.pdf">their report</a>.
+		Most noteworthy is the proposed Employee Hours Tax, which would raise revenue per employee or per employee hour for businesses with revenue above a several million dollar threshold.
+		In addition to making some general recommendations, they gave <a href="#" data-toggle="modal" data-target="#optionsModal">three concrete options</a> for the City Council to consider.
+		These options vary in how much revenue businesses must make for the tax to apply to them, the tax rate, and whether the tax is per employee or proportional to payroll.
+	    </p>
+	    
+
+	    <h3>The Opposition</h3>
+	    <p>
+		The Seattle Metropolitan Chamber of Commerce is all in <a href="https://www.seattlechamber.com/home/advocacy/advocacy-news/details/2018/02/27/take-action-tell-seattle-city-council-a-tax-on-jobs-is-not-the-answer">opposing the recommendations</a>.
+		Their op-ed and letter-writing tool encourage city council members to throw away the recommendations and focus on spending their current homelessness budget effectively.
+	    </p>
+
+	    <p>
+		A <a href="http://q13fox.com/2018/03/12/seattle-business-community-alarmed-by-suggested-new-city-tax-association-says/">Q13 Fox segment</a> claims that "Most businesses would have to pay a few cents for every hour worked by their employees".
+		This is an incorrect reading of the proposal, and the segment dishonestly implies that this proposal's adoption would crush the small business owner who they feature in the piece.
+	    </p>
+
+	    <h3>So. Are these recommendations bad for your business?</h3>
+	    Fill in the numbers for your business below to see how the taskforce recommendations would effect you.
+	    While you're at it, see how this would effect some other well-known Seattle businesses.
+
+
+	    <div class="modal fade" id="optionsModal" tabindex="-1" role="dialog" aria-labelledby="optionsModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" role="document">
+		    <div class="modal-content">
+			<!-- <div class="modal-header">
+			     <h5 class="modal-title" id="optionsModalLabel">Three PRTF Options</h5>
+			     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			     <span aria-hidden="true">&times;</span>
+			     </button>
+			     </div> -->
+			<div class="modal-body">
+			    <h3>PRTF Recommendations*</h3>
+			    <h4>Option 1</h4>
+			    $10 million per year gross revenue exemption threshold
+			    <ul>
+				<li>Firms with 1-100 FTE employees pay 0.25% of all payroll (avg. $0.078/hr)</li>
+				<li>Firms with 101-500 FTE employees pay 0.50% of all payroll (avg. $0.156/hr)</li>
+				<li>Firms with 501+ FTE employees pay 0.75% of all payroll (avg. $0.234/hr)</li>
+				<li>Firms with gross revenue between $500,000 and $10 million pay $395/year</li>
+			    </ul>
+
+			    <h4>Option 2</h4>
+			    $8 million per year gross revenue exemption threshold
+			    <ul>
+				<li>Firms with 1-500 FTE employees pay $200/FTE/year ($0.104/hr)</li>
+				<li>Firms with 501+ FTE employees pay $450/FTE/year ($0.234/hr)</li>
+				<li>Firms with gross revenue between $500,000 and $8 million pay $395/year</li>
+			    </ul>
+
+			    <h4>Option 3</h4>
+			    $8 million per year gross revenue exemption threshold
+			    <ul>
+				<li>Firms with 1-500 FTE employees pay $140/FTE/year + 0.1% of all payroll</li>
+				<li>Firms with 501+ FTE employees pay $300/FTE/year + 0.25% of all payroll</li>
+				<li>Firms with gross revenue between $500,000 and $8 million pay $395/year</li>
+			    </ul>
+			    * In the report (Appendix B1), all three options list the "skin in the game" tax as $200/year for medium-sized businesses ($500K - $8-10M revenue).
+			    However, the taskforce's official recommendation (page 6) was $395 for this variable, so that is what we show in this tool, and we believe that's what the taskforce intended.
+			</div>
+			<div class="modal-footer">
+			    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	</div>
+
+	<div class="container">
+	    <div id="chart-wrapper">
+		<div id="d3-chart" style="margin:auto; width:600px;"></div>
+	    </div>
+
+	    <div class="row">
+		<div class="col-sm-8">
+		    <h3>How would this effect your businesses?</h3>
+		    <div class="form-group row">
+			<label class="col-4 col-form-label" for="revenue_input">Annual Revenue ($)</label>
+			<div class="col-8">
+			    <input id="revenue_input" class="form-control" type="number" value="10000000" min="0">
+			</div>
+		    </div>
+		    <div class="form-group row">
+			<label class="col-4 col-form-label" for="num_fte_input">Number of Full-Time Equivalent Employees</label>
+			<div class="col-8">
+			    <input id="num_fte_input" class="form-control" type="number" value="2" min="0">
+			</div>
+		    </div>
+
+
+		    <div class="form-group row">
+			<label class="col-4 col-form-label" for="employee_wage_input">Average Hourly Employee Wage</label>
+			<div class="col-8">
+			    <input id="employee_wage_input" class="form-control" type="number" value="20" min="0">
+			</div>
+		    </div>
+
+		    <button type="button" class="btn btn-primary" onclick="calculate_tax();">Calculate</button>
+		</div>
+		<div class="col-sm-4" >
+		    <h3>How would this effect some other well-known Seattle businesses?</h3>
+		    <div style="padding:3px;"><button type="button" class="btn btn-secondary" onclick="show_company('amazon');">Amazon</button></div>
+		    <a href="https://www.seattletimes.com/business/amazon/thanks-to-amazon-seattle-is-now-americas-biggest-company-town/">[1]</a><a href="https://www.geekwire.com/2018/report-average-tech-worker-salary-seattle-hits-132k-making-city-top-spot-relocation/">[2]</a><a href="http://phx.corporate-ir.net/phoenix.zhtml?c=97664&p=irol-reportsannual">[3]</a>
+		    <div style="padding:3px;"><button type="button" class="btn btn-secondary" onclick="show_company('facebook');">Facebook</button></div>
+		    <a href="https://www.geekwire.com/2018/report-average-tech-worker-salary-seattle-hits-132k-making-city-top-spot-relocation/">[2]</a><a href="https://www.seattletimes.com/business/technology/facebook-with-2000-employees-in-seattle-expands-into-new-building/">[4]</a><a href="https://s21.q4cdn.com/399680738/files/doc_financials/annual_reports/FB_AR_2016_FINAL.pdf">[5]</a>
+		</div>
+
+	    </div>
+
+	</div>
+	    
+
+
+	<script>
+	 show_company('amazon');
+	 /* calculate_tax(); */
+	</script>	
+    </body>
+</html>
